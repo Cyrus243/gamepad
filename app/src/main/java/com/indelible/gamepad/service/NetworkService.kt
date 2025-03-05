@@ -36,6 +36,9 @@ class NetworkServiceImpl: NetworkService {
 
     override suspend fun sendData(data: ByteArray) {
         withContext(Dispatchers.IO){
+            outputStream?.write(data.size)
+            outputStream?.flush()
+
             outputStream?.write(data)
             outputStream?.flush()
         }

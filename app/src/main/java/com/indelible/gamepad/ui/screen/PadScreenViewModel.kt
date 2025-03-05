@@ -31,33 +31,33 @@ class PadScreenViewModel(
         _uiState.update {
             uiState.value.copy(leftJoystickPosition = position)
         }
-        onStateChange(byteArrayOf(255.toByte(), 1, 2, 1, 1, 0, position.toEncodedByte(), 0))
+        onStateChange(byteArrayOf(255.toByte(), 1, 2, 3, 0, 0, position.toEncodedByte(), 0))
     }
 
     fun updateRightJoystickPosition(position: JoystickPosition) {
         _uiState.update {
             uiState.value.copy(rightJoystickPosition = position)
         }
-        onStateChange(byteArrayOf(255.toByte(), 1, 2, 1, 1, 0, position.toEncodedByte(), 0))
+        onStateChange(byteArrayOf(255.toByte(), 1, 2, 2, 0, 0, position.toEncodedByte(), 0))
     }
 
     fun updatePressedButtonsIndex(index: Int) {
         _uiState.update {
             uiState.value.copy(pressedButtonsIndex = index)
         }
-        onStateChange(byteArrayOf(255.toByte(), 1, 2, 1, 1, index.toByte(), 0, 0))
+        onStateChange(byteArrayOf(255.toByte(), 1, 2, 1, 0, index.toByte(), 0, 0))
     }
 
     fun updatePressedDirectionIndex(index: Int) {
         _uiState.update {
             uiState.value.copy(pressedDirectionIndex = index)
         }
-        onStateChange(byteArrayOf(255.toByte(), 1, 2, 1, 1, index.toByte(), 0, 0))
+        onStateChange(byteArrayOf(255.toByte(), 1, 2, 1, 0, index.toByte(), 0, 0))
     }
 
-    fun closeConnection(){
+    private fun closeConnection(){
         viewModelScope.launch {
-            networkService.disconnect()
+            async { networkService.disconnect() }.await()
         }
     }
 
@@ -65,12 +65,18 @@ class PadScreenViewModel(
     private fun onStateChange(data: ByteArray){
         viewModelScope.launch {
             try {
-                async { networkService.sendData(data) }.await()
+                networkService.sendData(data)
             }catch (e: Exception){
                 Log.e(TAG, "error sending data", e)
                 networkService.disconnect()
             }
         }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        Log.d(TAG, "onCleared")
+        closeConnection()
     }
 }
 

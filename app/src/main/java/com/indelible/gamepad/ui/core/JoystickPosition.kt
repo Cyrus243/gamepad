@@ -6,7 +6,6 @@ data class JoystickPosition(
 ){
     fun toEncodedByte(): Byte {
         val encodedNorm = norm*7
-        val encodedAngle = (angle/360)*31
-        return encodedAngle.toInt().shl(3).or(encodedNorm.toInt()).toByte()
+        return angle.toInt().shl(3).or(encodedNorm.toInt()).toByte()
     }
 }
