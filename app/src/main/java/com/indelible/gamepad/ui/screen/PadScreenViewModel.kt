@@ -45,25 +45,29 @@ class PadScreenViewModel(
                 }
             }
             launch {
-                networkService.message.filterNotNull().collect{
-                    Log.d(TAG, "message received: $it")
-                    if (it == QUIT_MESSAGE){
-                        closeConnection()
-                        snackBarManager.showMessage(
-                            SnackBarMessage.StringSnackBar("Disconnected from the server")
-                        )
-                    }
-                }
+                listenToReceiveMessage()
             }
             launch {
                 actualControllerState.filterNotNull().collect { state ->
-                    Log.d(TAG, "byte of direction position: ${state.toList()}")
-                    //onStateChange(state)
+                    onStateChange(state)
                 }
             }
 
         }
     }
+
+    private suspend fun listenToReceiveMessage(){
+        networkService.message.filterNotNull().collect{
+            Log.d(TAG, "message received: $it")
+            if (it == QUIT_MESSAGE){
+                closeConnection()
+                snackBarManager.showMessage(
+                    SnackBarMessage.StringSnackBar("Disconnected from the server")
+                )
+            }
+        }
+    }
+
     fun updateLeftJoystickPosition(position: JoystickPosition){
         actualControllerState.update { currentState ->
             currentState.toMutableList().apply {
@@ -244,21 +248,8 @@ class PadScreenViewModel(
 data class PadScreenState(
     val connectionType: ConnectionType = ConnectionType.Server,
     val connectionState: ConnectionState = ConnectionState.DISCONNECTED,
-    val actualControllerState: ByteArray = byteArrayOf(255.toByte(), 0, 0, 0, 0, 0),
     val ipAddress: String = "",
     val port: String = "",
     val controllerType: ControllerType = ControllerType.DIGITAL
-) {
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (javaClass != other?.javaClass) return false
-
-        other as PadScreenState
-        return actualControllerState.contentEquals(other.actualControllerState)
-    }
-
-    override fun hashCode(): Int {
-        return actualControllerState.contentHashCode()
-    }
-}
+)
 
