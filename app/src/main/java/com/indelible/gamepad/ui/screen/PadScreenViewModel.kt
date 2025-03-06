@@ -9,6 +9,7 @@ import com.indelible.gamepad.service.NetworkServiceImpl
 import com.indelible.gamepad.ui.core.ConnectionState
 import com.indelible.gamepad.ui.core.ConnectionType
 import com.indelible.gamepad.ui.core.ControllerType
+import com.indelible.gamepad.ui.core.DataError
 import com.indelible.gamepad.ui.core.JoystickPosition
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -93,31 +94,44 @@ class PadScreenViewModel(
 
         viewModelScope.launch {
             updateConnectionState(ConnectionState.CONNECTING)
-            delay(700)
+            delay(300)
             when(val result = async { networkService.connect(ipAddress, port) }.await()){
                 is Result.Success -> {
                     updateConnectionState(result.data)
                     onComplete()
                 }
                 is Result.Error -> {
-                    updateConnectionState(ConnectionState.DISCONNECTED)
-                    snackBarManager.showMessage(
-                        SnackBarMessage.StringSnackBar("The host server is unreachable!")
-                    )
-                    Log.d(TAG, "connectToServer: Host unreachable !")
+                    when (result.error){
+                        DataError.Network.HOST_UNREACHABLE -> {
+                            updateConnectionState(ConnectionState.DISCONNECTED)
+                            snackBarManager.showMessage(
+                                SnackBarMessage.StringSnackBar("The host server is unreachable!")
+                            )
+                            Log.d(TAG, "connectToServer: Host unreachable !")
+                        }
+                        else -> {}
+                    }
                 }
             }
         }
     }
 
-
     private fun onStateChange(data: ByteArray){
+        if (uiState.value.connectionState != ConnectionState.CONNECTED)
+            return
+
         viewModelScope.launch {
-            try {
-                networkService.sendData(data)
-            }catch (e: Exception){
-                Log.e(TAG, "error sending data", e)
-                networkService.disconnect()
+            when(val result = async { networkService.sendData(data) }.await()){
+                is Result.Error -> {
+                    when(result.error){
+                        DataError.Network.SOCKET_CLOSED -> {
+                            updateConnectionState(ConnectionState.DISCONNECTED)
+                            networkService.disconnect()
+                        }
+                        else ->{}
+                    }
+                }
+                else -> {}
             }
         }
     }

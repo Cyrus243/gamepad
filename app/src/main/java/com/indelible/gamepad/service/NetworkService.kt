@@ -9,12 +9,13 @@ import kotlinx.coroutines.withContext
 import java.io.OutputStream
 import java.net.NoRouteToHostException
 import java.net.Socket
+import java.net.SocketException
 
 
 interface NetworkService {
     suspend fun connect(ipAddress: String, port: Int): Result<ConnectionState, DataError.Network>
     suspend fun disconnect()
-    suspend fun sendData(data: ByteArray)
+    suspend fun sendData(data: ByteArray): Result<String, DataError.Network>
 }
 
 class NetworkServiceImpl: NetworkService {
@@ -45,13 +46,19 @@ class NetworkServiceImpl: NetworkService {
         }
     }
 
-    override suspend fun sendData(data: ByteArray) {
-        withContext(Dispatchers.IO){
-            outputStream?.write(data.size)
-            outputStream?.flush()
+    override suspend fun sendData(data: ByteArray): Result<String, DataError.Network> {
+        return withContext(Dispatchers.IO){
+            try {
+                outputStream?.write(data.size)
+                outputStream?.flush()
 
-            outputStream?.write(data)
-            outputStream?.flush()
+                outputStream?.write(data)
+                outputStream?.flush()
+                Result.Success("Data sent")
+            }catch (e: SocketException){
+                Log.e(TAG, "sendData: ${e.message}")
+                Result.Error(DataError.Network.SOCKET_CLOSED)
+            }
         }
     }
 
