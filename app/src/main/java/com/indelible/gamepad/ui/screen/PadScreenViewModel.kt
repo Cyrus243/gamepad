@@ -22,6 +22,8 @@ import kotlinx.coroutines.launch
 import com.indelible.gamepad.ui.core.Result
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filterNotNull
+import kotlin.experimental.and
+import kotlin.experimental.or
 
 class PadScreenViewModel(
     private val networkService: NetworkService,
@@ -30,6 +32,7 @@ class PadScreenViewModel(
 ): BaseViewModel() {
     private val _uiState = MutableStateFlow(PadScreenState())
     val uiState = _uiState.asStateFlow()
+    private val actualControllerState = MutableStateFlow(byteArrayOf(255.toByte(), 0, 0, 0, 0, 0))
 
     init {
         viewModelScope.launch {
@@ -52,34 +55,57 @@ class PadScreenViewModel(
                     }
                 }
             }
+            launch {
+                actualControllerState.filterNotNull().collect { state ->
+                    Log.d(TAG, "byte of direction position: ${state.toList()}")
+                    //onStateChange(state)
+                }
+            }
+
         }
     }
     fun updateLeftJoystickPosition(position: JoystickPosition){
-        _uiState.update {
-            uiState.value.copy(leftJoystickPosition = position)
+        actualControllerState.update { currentState ->
+            currentState.toMutableList().apply {
+                this[LEFT_JOYSTICK_INDEX] = position.toEncodedByte()
+            }.toByteArray()
         }
-        onStateChange(byteArrayOf(255.toByte(), 1, 2, 3, 0, 0, position.toEncodedByte(), 0))
     }
 
     fun updateRightJoystickPosition(position: JoystickPosition) {
-        _uiState.update {
-            uiState.value.copy(rightJoystickPosition = position)
+        actualControllerState.update { currentState ->
+            currentState.toMutableList().apply {
+                this[RIGHT_JOYSTICK_INDEX] = position.toEncodedByte()
+            }.toByteArray()
         }
-        onStateChange(byteArrayOf(255.toByte(), 1, 2, 2, 0, 0, position.toEncodedByte(), 0))
     }
 
-    fun updatePressedButtonsIndex(index: Int) {
-        _uiState.update {
-            uiState.value.copy(pressedButtonsIndex = index)
+    fun updatePressedButtonsIndex(value: Boolean, buttonIndex: Int) {
+        if (buttonIndex in 0..3){
+            actualControllerState.update { currentState ->
+                currentState.toMutableList().apply {
+                    this[ROUNDED_BUTTON_POSITION] = if (value){
+                        this[ROUNDED_BUTTON_POSITION] or (1 shl buttonIndex).toByte()
+                    }else{
+                        this[ROUNDED_BUTTON_POSITION] and (1 shl buttonIndex).inv().toByte()
+                    }
+                }.toByteArray()
+            }
         }
-        onStateChange(byteArrayOf(255.toByte(), 1, 2, 1, 0, index.toByte(), 0, 0))
     }
 
-    fun updatePressedDirectionIndex(index: Int) {
-        _uiState.update {
-            uiState.value.copy(pressedDirectionIndex = index)
+    fun updatePressedDirectionIndex(value: Boolean, buttonIndex: Int) {
+        if (buttonIndex in 0..3){
+            actualControllerState.update { currentState ->
+                currentState.toMutableList().apply {
+                    this[DIRECTION_BUTTON_POSITION] = if (value){
+                        this[DIRECTION_BUTTON_POSITION] or (1 shl buttonIndex).toByte()
+                    }else{
+                        this[DIRECTION_BUTTON_POSITION] and (1 shl buttonIndex).inv().toByte()
+                    }
+                }.toByteArray()
+            }
         }
-        onStateChange(byteArrayOf(255.toByte(), 1, 2, 1, 0, index.toByte(), 0, 0))
     }
 
     fun updateConnectionType(type: ConnectionType){
@@ -172,7 +198,7 @@ class PadScreenViewModel(
         snackBarManager.showMessage(SnackBarMessage.StringSnackBar("Settings saved"))
     }
 
-    fun readSettings(key: Preferences.Key<String>, onComplete: (String) -> Unit){
+    private fun readSettings(key: Preferences.Key<String>, onComplete: (String) -> Unit){
         viewModelScope.launch {
             val result = async { appPreferences.readFromDataStore(key) }.await()
             onComplete(result ?: "")
@@ -204,18 +230,35 @@ class PadScreenViewModel(
         Log.d(TAG, "onCleared")
         closeConnection()
     }
+
+    companion object {
+        private const val LEFT_JOYSTICK_INDEX = 1
+        private const val RIGHT_JOYSTICK_INDEX = 2
+        private const val DIRECTION_BUTTON_POSITION = 3
+        private const val ROUNDED_BUTTON_POSITION = 4
+
+        private const val TAG = "PadScreenViewModel"
+    }
 }
 
 data class PadScreenState(
-    val leftJoystickPosition: JoystickPosition = JoystickPosition(),
-    val rightJoystickPosition: JoystickPosition = JoystickPosition(),
-    val pressedButtonsIndex: Int = 0,
-    val pressedDirectionIndex: Int = 0,
     val connectionType: ConnectionType = ConnectionType.Server,
     val connectionState: ConnectionState = ConnectionState.DISCONNECTED,
+    val actualControllerState: ByteArray = byteArrayOf(255.toByte(), 0, 0, 0, 0, 0),
     val ipAddress: String = "",
     val port: String = "",
     val controllerType: ControllerType = ControllerType.DIGITAL
-)
+) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
 
-private const val TAG = "PadScreenViewModel"
+        other as PadScreenState
+        return actualControllerState.contentEquals(other.actualControllerState)
+    }
+
+    override fun hashCode(): Int {
+        return actualControllerState.contentHashCode()
+    }
+}
+

@@ -1,5 +1,6 @@
 package com.indelible.gamepad.ui.components
 
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
@@ -12,6 +13,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 
 @Composable
@@ -19,11 +21,21 @@ fun PadRoundedButton(
     modifier: Modifier = Modifier,
     icon: ImageVector,
     rotateIcon: Boolean = false,
-    onClick: () -> Unit = {}
+    onButtonClick: (index: Int, command: Boolean) -> Unit,
+    buttonPosition: Int
 ){
     Surface(
-        onClick = onClick,
-        modifier = modifier.size(72.dp),
+        modifier = modifier
+            .size(72.dp)
+            .pointerInput(Unit){
+                detectTapGestures(
+                    onPress = {
+                        onButtonClick(buttonPosition, true)
+                        tryAwaitRelease()
+                        onButtonClick(buttonPosition, false)
+                    }
+                )
+            },
         shape = CircleShape,
         border = CardDefaults.outlinedCardBorder()
     ) {

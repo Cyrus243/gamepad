@@ -5,6 +5,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -39,6 +40,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.indelible.gamepad.common.BOTTOM_DIRECTION
@@ -137,8 +139,8 @@ fun GamePadScreenContent(
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ){
-        DirectionButtonGroup { command ->
-            viewModel.updatePressedDirectionIndex(command)
+        DirectionButtonGroup { index, command ->
+            viewModel.updatePressedDirectionIndex(command, index)
         }
 
         Column(
@@ -185,15 +187,15 @@ fun GamePadScreenContent(
             }
         }
 
-        RoundActionsButtonGroup {
-            viewModel.updatePressedButtonsIndex(it)
+        RoundActionsButtonGroup { index, command ->
+            viewModel.updatePressedButtonsIndex(command, index)
         }
     }
 }
 
 @Composable
 fun DirectionButtonGroup(
-    onDirectionClick: (command: Int) -> Unit
+    onDirectionClick: (index: Int, command: Boolean) -> Unit
 ){
     Box(
         modifier = Modifier.padding()
@@ -203,19 +205,51 @@ fun DirectionButtonGroup(
         ) {
             LeftPadDirectionButton(
                 Modifier.align(Alignment.BottomCenter)
-                    .clickable { onDirectionClick(LEFT_DIRECTION) }
+                    .pointerInput(Unit){
+                        detectTapGestures(
+                            onPress = {
+                                onDirectionClick(LEFT_DIRECTION, true)
+                                tryAwaitRelease()
+                                onDirectionClick(LEFT_DIRECTION, false)
+                            }
+                        )
+                    }
             )
             RightPadDirectionButton(
                 Modifier.align(Alignment.TopCenter)
-                    .clickable { onDirectionClick(RIGHT_DIRECTION) }
+                    .pointerInput(Unit){
+                        detectTapGestures(
+                            onPress = {
+                                onDirectionClick(RIGHT_DIRECTION, true)
+                                tryAwaitRelease()
+                                onDirectionClick(RIGHT_DIRECTION, false)
+                            }
+                        )
+                    }
             )
             TopPadDirectionButton(
                 Modifier.align(Alignment.CenterEnd)
-                    .clickable { onDirectionClick(TOP_DIRECTION) }
+                    .pointerInput(Unit){
+                        detectTapGestures(
+                            onPress = {
+                                onDirectionClick(TOP_DIRECTION, true)
+                                tryAwaitRelease()
+                                onDirectionClick(TOP_DIRECTION, false)
+                            }
+                        )
+                    }
             )
             BottomPadDirectionButton(
                 Modifier.align(Alignment.CenterStart)
-                    .clickable { onDirectionClick(BOTTOM_DIRECTION) }
+                    .pointerInput(Unit){
+                        detectTapGestures(
+                            onPress = {
+                                onDirectionClick(BOTTOM_DIRECTION, true)
+                                tryAwaitRelease()
+                                onDirectionClick(BOTTOM_DIRECTION, false)
+                            }
+                        )
+                    }
             )
         }
     }
@@ -223,7 +257,7 @@ fun DirectionButtonGroup(
 
 @Composable
 fun RoundActionsButtonGroup(
-    onButtonClick: (command: Int) -> Unit
+    onButtonClick: (index: Int, command: Boolean) -> Unit
 ){
     Box(modifier = Modifier) {
         Box(
@@ -232,25 +266,29 @@ fun RoundActionsButtonGroup(
             PadRoundedButton(
                 modifier = Modifier.align(Alignment.BottomCenter),
                 icon = Icons.Default.Close,
-                onClick = { onButtonClick(X_BUTTON) }
+                onButtonClick = onButtonClick,
+                buttonPosition = X_BUTTON
             )
 
             PadRoundedButton(
                 modifier = Modifier.align(Alignment.TopCenter),
                 icon = Icons.Outlined.ChangeHistory,
-                onClick = { onButtonClick(TRIANGLE_BUTTON) }
+                onButtonClick = onButtonClick,
+                buttonPosition = TRIANGLE_BUTTON
             )
 
             PadRoundedButton(
                 modifier = Modifier.align(Alignment.CenterEnd),
                 icon = Icons.Outlined.Circle,
-                onClick = { onButtonClick(CIRCLE_BUTTON) }
+                onButtonClick = onButtonClick,
+                buttonPosition = CIRCLE_BUTTON
             )
 
             PadRoundedButton(
                 modifier = Modifier.align(Alignment.CenterStart),
                 icon = Icons.Outlined.CropDin,
-                onClick = { onButtonClick(SQUARE_BUTTON) }
+                onButtonClick = onButtonClick,
+                buttonPosition = SQUARE_BUTTON
             )
         }
     }
