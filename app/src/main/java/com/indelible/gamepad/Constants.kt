@@ -9,3 +9,5 @@ const val X_BUTTON = 16
 const val SQUARE_BUTTON = 32
 const val CIRCLE_BUTTON = 64
 const val TRIANGLE_BUTTON = 128
+
+const val QUIT_MESSAGE = "quit"

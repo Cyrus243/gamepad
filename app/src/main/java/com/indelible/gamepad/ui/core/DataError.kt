@@ -7,4 +7,9 @@ sealed interface DataError: Error {
         NETWORK_ERROR,
         UNKNOWN
     }
+
+    enum class IPAddress: DataError {
+        INVALID_IP_ADDRESS,
+        UNKNOWN
+    }
 }

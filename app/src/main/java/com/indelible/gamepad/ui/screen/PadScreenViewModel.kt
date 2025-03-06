@@ -4,12 +4,14 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.indelible.gamepad.BaseViewModel
+import com.indelible.gamepad.QUIT_MESSAGE
 import com.indelible.gamepad.common.SnackBarMessage
 import com.indelible.gamepad.service.NetworkServiceImpl
 import com.indelible.gamepad.ui.core.ConnectionState
 import com.indelible.gamepad.ui.core.ConnectionType
 import com.indelible.gamepad.ui.core.ControllerType
 import com.indelible.gamepad.ui.core.DataError
+import com.indelible.gamepad.ui.core.InputValidator
 import com.indelible.gamepad.ui.core.JoystickPosition
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,13 +20,29 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import com.indelible.gamepad.ui.core.Result
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.filterNotNull
 
 class PadScreenViewModel(
-    private val networkService: NetworkServiceImpl = NetworkServiceImpl()
+    private val networkService: NetworkServiceImpl = NetworkServiceImpl(),
+    private val inputValidator: InputValidator = InputValidator()
 ): BaseViewModel() {
     private val _uiState = MutableStateFlow(PadScreenState())
     val uiState = _uiState.asStateFlow()
 
+    init {
+        viewModelScope.launch {
+            networkService.message.filterNotNull().collect{
+                Log.d(TAG, "message received: $it")
+                if (it == QUIT_MESSAGE){
+                    closeConnection()
+                    snackBarManager.showMessage(
+                        SnackBarMessage.StringSnackBar("Disconnected from the server")
+                    )
+                }
+            }
+        }
+    }
     fun updateLeftJoystickPosition(position: JoystickPosition){
         _uiState.update {
             uiState.value.copy(leftJoystickPosition = position)
@@ -92,6 +110,11 @@ class PadScreenViewModel(
         val ipAddress = uiState.value.ipAddress
         val port = uiState.value.port.toInt()
 
+        if (inputValidator.validateIpAddress(ipAddress).not()){
+            snackBarManager.showMessage(SnackBarMessage.StringSnackBar("Invalid IP address"))
+            return
+        }
+
         viewModelScope.launch {
             updateConnectionState(ConnectionState.CONNECTING)
             delay(300)
@@ -99,6 +122,7 @@ class PadScreenViewModel(
                 is Result.Success -> {
                     updateConnectionState(result.data)
                     onComplete()
+                    networkService.receiveMessage()
                 }
                 is Result.Error -> {
                     when (result.error){
