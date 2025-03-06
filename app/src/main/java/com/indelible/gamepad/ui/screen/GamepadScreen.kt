@@ -2,6 +2,8 @@ package com.indelible.gamepad.ui.screen
 
 import android.annotation.SuppressLint
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,7 +24,6 @@ import androidx.compose.material.icons.outlined.ChangeHistory
 import androidx.compose.material.icons.outlined.Circle
 import androidx.compose.material.icons.outlined.CropDin
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DismissibleDrawerSheet
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.DrawerValue
@@ -38,7 +39,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.indelible.gamepad.BOTTOM_DIRECTION
@@ -52,6 +52,7 @@ import com.indelible.gamepad.X_BUTTON
 import com.indelible.gamepad.ui.components.BottomPadDirectionButton
 import com.indelible.gamepad.ui.components.Joystick
 import com.indelible.gamepad.ui.components.LeftPadDirectionButton
+import com.indelible.gamepad.ui.components.LoadingIndicator
 import com.indelible.gamepad.ui.components.PadRoundedButton
 import com.indelible.gamepad.ui.components.RightPadDirectionButton
 import com.indelible.gamepad.ui.components.TopPadDirectionButton
@@ -65,43 +66,55 @@ fun GamePadScreen(){
     val viewModel: PadScreenViewModel = viewModel()
     val uiState by viewModel.uiState.collectAsState()
     val drawerState = rememberDrawerState(DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
 
-    ModalNavigationDrawer(
-        drawerState = drawerState,
-        drawerContent = {
-            DismissibleDrawerSheet {
-                Column(
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .requiredWidth(360.dp)
-                ) {
-                    ConfigurationSheet(
-                        connectionState = uiState.isConnected,
-                        onConnectClick = { viewModel.connectToServer() },
-                        onDisconnectClick = { viewModel.closeConnection() },
-                        selectedConnectionType = uiState.connectionType,
-                        onSelectedConnectionTypeChange = { viewModel.updateConnectionType(it) },
-                        ipAddress = uiState.ipAddress,
-                        port = uiState.port,
-                        onIpAddressChange = { viewModel.updateIpAddress(it) },
-                        onPortChange = { viewModel.updatePort(it) }
-                    )
+    Box(
+        modifier = Modifier.fillMaxSize()
+    ) {
+        ModalNavigationDrawer(
+            drawerState = drawerState,
+            drawerContent = {
+                DismissibleDrawerSheet {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .requiredWidth(360.dp)
+                    ) {
+                        ConfigurationSheet(
+                            connectionState = uiState.connectionState,
+                            onConnectClick = {
+                                viewModel.connectToServer(
+                                    onComplete = { scope.launch { drawerState.close() } }
+                                )
+                             },
+                            onDisconnectClick = { viewModel.closeConnection() },
+                            selectedConnectionType = uiState.connectionType,
+                            onSelectedConnectionTypeChange = { viewModel.updateConnectionType(it) },
+                            ipAddress = uiState.ipAddress,
+                            port = uiState.port,
+                            onIpAddressChange = { viewModel.updateIpAddress(it) },
+                            onPortChange = { viewModel.updatePort(it) },
+                            selectedControllerType = uiState.controllerType,
+                            onSelectedControllerTypeChange = { viewModel.updateControllerType(it) }
+                        )
+                    }
                 }
+            }
+        ) {
+            Box(modifier = Modifier.fillMaxSize()) {
+                GamePadScreenContent(
+                    drawerState = drawerState,
+                    viewModel = viewModel,
+                    connectionState = uiState.connectionState
+                )
             }
         }
-    ) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            GamePadScreenContent(
-                drawerState = drawerState,
-                viewModel = viewModel,
-                connectionState = uiState.isConnected
-            )
-
-            AnimatedVisibility(false) {
-                Surface(color = Color.Black.copy(alpha = .3f)) {
-                    CircularProgressIndicator()
-                }
-            }
+        AnimatedVisibility(
+            visible = uiState.connectionState == ConnectionState.CONNECTING,
+            enter = fadeIn(),
+            exit = fadeOut()
+        ) {
+            LoadingIndicator()
         }
     }
 }
@@ -121,7 +134,7 @@ fun GamePadScreenContent(
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ){
-        DirectionButtonGroup(){ command ->
+        DirectionButtonGroup { command ->
             viewModel.updatePressedDirectionIndex(command)
         }
 
@@ -140,9 +153,14 @@ fun GamePadScreenContent(
             ) {  }
             Spacer(modifier = Modifier.height(8.dp))
 
+            val statusStyle = if (connectionState == ConnectionState.CONNECTED)
+                MaterialTheme.typography.bodySmall.copy(color = darkSpringGreen)
+            else
+                MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.error)
+
             Text(
                 text = if (connectionState == ConnectionState.CONNECTED) "CONNECTED" else "DISCONNECTED",
-                style = MaterialTheme.typography.bodySmall.copy(color = darkSpringGreen)
+                style = statusStyle
             )
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -164,7 +182,7 @@ fun GamePadScreenContent(
             }
         }
 
-        RoundActionsButtonGroup(){
+        RoundActionsButtonGroup {
             viewModel.updatePressedButtonsIndex(it)
         }
     }

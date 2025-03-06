@@ -6,12 +6,15 @@ import androidx.lifecycle.viewModelScope
 import com.indelible.gamepad.service.NetworkServiceImpl
 import com.indelible.gamepad.ui.core.ConnectionState
 import com.indelible.gamepad.ui.core.ConnectionType
+import com.indelible.gamepad.ui.core.ControllerType
 import com.indelible.gamepad.ui.core.JoystickPosition
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import com.indelible.gamepad.ui.core.Result
+import kotlinx.coroutines.delay
 
 class PadScreenViewModel(
     private val networkService: NetworkServiceImpl = NetworkServiceImpl()
@@ -65,7 +68,13 @@ class PadScreenViewModel(
 
     private fun updateConnectionState(state: ConnectionState){
         _uiState.update {
-            uiState.value.copy(isConnected = state)
+            uiState.value.copy(connectionState = state)
+        }
+    }
+
+    fun updateControllerType(type: ControllerType){
+        _uiState.update {
+            uiState.value.copy(controllerType = type)
         }
     }
 
@@ -76,18 +85,22 @@ class PadScreenViewModel(
         }
     }
 
-    fun connectToServer(){
-        updateConnectionState(ConnectionState.CONNECTING)
+    fun connectToServer(onComplete: () -> Unit){
         val ipAddress = uiState.value.ipAddress
         val port = uiState.value.port.toInt()
 
         viewModelScope.launch {
-            try {
-                async { networkService.connect(ipAddress, port) }.await()
-                updateConnectionState(ConnectionState.CONNECTED)
-            } catch (e: Exception) {
-                Log.e(TAG, "error connecting to the server", e)
-                updateConnectionState(ConnectionState.DISCONNECTED)
+            updateConnectionState(ConnectionState.CONNECTING)
+            delay(700)
+            when(val result = async { networkService.connect(ipAddress, port) }.await()){
+                is Result.Success -> {
+                    updateConnectionState(result.data)
+                    onComplete()
+                }
+                is Result.Error -> {
+                    updateConnectionState(ConnectionState.DISCONNECTED)
+                    Log.d(TAG, "connectToServer: Host unreachable !")
+                }
             }
         }
     }
@@ -117,9 +130,10 @@ data class PadScreenState(
     val pressedButtonsIndex: Int = 0,
     val pressedDirectionIndex: Int = 0,
     val connectionType: ConnectionType = ConnectionType.Server,
-    val isConnected: ConnectionState = ConnectionState.DISCONNECTED,
+    val connectionState: ConnectionState = ConnectionState.DISCONNECTED,
     val ipAddress: String = "192.168.2.21",
-    val port: String = "3000"
+    val port: String = "3000",
+    val controllerType: ControllerType = ControllerType.DIGITAL
 )
 
 private const val TAG = "PadScreenViewModel"

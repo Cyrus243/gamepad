@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.indelible.gamepad.ui.core.ConnectionState
 import com.indelible.gamepad.ui.core.ConnectionType
+import com.indelible.gamepad.ui.core.ControllerType
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -46,7 +47,9 @@ fun ConfigurationSheet(
     ipAddress: String,
     port: String,
     onIpAddressChange: (String) -> Unit,
-    onPortChange: (String) -> Unit
+    onPortChange: (String) -> Unit,
+    selectedControllerType: ControllerType,
+    onSelectedControllerTypeChange: (ControllerType) -> Unit
 ){
     val tabLists by remember { mutableStateOf(listOf("server", "controller")) }
     val pagerState = rememberPagerState{ tabLists.size }
@@ -104,7 +107,7 @@ fun ConfigurationSheet(
             ) { index ->
                 when(index) {
                     0 -> {
-                        Column {
+                        Column(modifier = Modifier) {
                             ServerConfiguration(
                                 connectionState = connectionState,
                                 onConnectClick = onConnectClick,
@@ -118,7 +121,12 @@ fun ConfigurationSheet(
                             )
                         }
                     }
-                    1 -> {}
+                    1 -> {
+                        ControllerConfiguration(
+                            selectedControllerType = selectedControllerType,
+                            onSelectedControllerTypeChange = onSelectedControllerTypeChange
+                        )
+                    }
                 }
             }
         }
