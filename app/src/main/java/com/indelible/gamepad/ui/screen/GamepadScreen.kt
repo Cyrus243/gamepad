@@ -1,17 +1,20 @@
 package com.indelible.gamepad.ui.screen
 
 import android.annotation.SuppressLint
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -19,15 +22,23 @@ import androidx.compose.material.icons.outlined.ChangeHistory
 import androidx.compose.material.icons.outlined.Circle
 import androidx.compose.material.icons.outlined.CropDin
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DismissibleDrawerSheet
+import androidx.compose.material3.DrawerState
+import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.indelible.gamepad.BOTTOM_DIRECTION
@@ -44,11 +55,65 @@ import com.indelible.gamepad.ui.components.LeftPadDirectionButton
 import com.indelible.gamepad.ui.components.PadRoundedButton
 import com.indelible.gamepad.ui.components.RightPadDirectionButton
 import com.indelible.gamepad.ui.components.TopPadDirectionButton
+import com.indelible.gamepad.ui.core.ConnectionState
+import com.indelible.gamepad.ui.screen.configuration.ConfigurationSheet
+import com.indelible.gamepad.ui.theme.darkSpringGreen
+import kotlinx.coroutines.launch
 
-@SuppressLint("SourceLockedOrientationActivity")
 @Composable
 fun GamePadScreen(){
     val viewModel: PadScreenViewModel = viewModel()
+    val uiState by viewModel.uiState.collectAsState()
+    val drawerState = rememberDrawerState(DrawerValue.Closed)
+
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        drawerContent = {
+            DismissibleDrawerSheet {
+                Column(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .requiredWidth(360.dp)
+                ) {
+                    ConfigurationSheet(
+                        connectionState = uiState.isConnected,
+                        onConnectClick = { viewModel.connectToServer() },
+                        onDisconnectClick = { viewModel.closeConnection() },
+                        selectedConnectionType = uiState.connectionType,
+                        onSelectedConnectionTypeChange = { viewModel.updateConnectionType(it) },
+                        ipAddress = uiState.ipAddress,
+                        port = uiState.port,
+                        onIpAddressChange = { viewModel.updateIpAddress(it) },
+                        onPortChange = { viewModel.updatePort(it) }
+                    )
+                }
+            }
+        }
+    ) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            GamePadScreenContent(
+                drawerState = drawerState,
+                viewModel = viewModel,
+                connectionState = uiState.isConnected
+            )
+
+            AnimatedVisibility(false) {
+                Surface(color = Color.Black.copy(alpha = .3f)) {
+                    CircularProgressIndicator()
+                }
+            }
+        }
+    }
+}
+
+@SuppressLint("SourceLockedOrientationActivity")
+@Composable
+fun GamePadScreenContent(
+    connectionState: ConnectionState,
+    drawerState: DrawerState,
+    viewModel: PadScreenViewModel
+){
+    val scope = rememberCoroutineScope()
 
     Row(
         modifier = Modifier
@@ -76,8 +141,8 @@ fun GamePadScreen(){
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "CONNECTED",
-                style = MaterialTheme.typography.bodySmall.copy(color = Color.Green)
+                text = if (connectionState == ConnectionState.CONNECTED) "CONNECTED" else "DISCONNECTED",
+                style = MaterialTheme.typography.bodySmall.copy(color = darkSpringGreen)
             )
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -88,7 +153,11 @@ fun GamePadScreen(){
                 Joystick(updatePosition = {
                     viewModel.updateLeftJoystickPosition(it)
                 })
-                OutlinedButton(onClick = {}) {}
+                OutlinedButton(onClick = {
+                    scope.launch { drawerState.open() }
+                }) {
+
+                }
                 Joystick(updatePosition = {
                     viewModel.updateRightJoystickPosition(it)
                 })
@@ -106,8 +175,7 @@ fun DirectionButtonGroup(
     onDirectionClick: (command: Int) -> Unit
 ){
     Box(
-        modifier = Modifier
-            .padding()
+        modifier = Modifier.padding()
     ){
         Box(
             modifier = Modifier.requiredSize(180.dp)
@@ -169,11 +237,11 @@ fun RoundActionsButtonGroup(
 
 
 
-@Preview(
-    showBackground = true,
-    device = "spec:width=411dp,height=891dp,dpi=420,isRound=false,chinSize=0dp,orientation=landscape"
-)
-@Composable
-fun GamePadScreenPreview(){
-    GamePadScreen()
-}
+//@Preview(
+//    showBackground = true,
+//    device = "spec:width=411dp,height=891dp,dpi=420,isRound=false,chinSize=0dp,orientation=landscape"
+//)
+//@Composable
+//fun GamePadScreenPreview(){
+//    GamePadScreenContent()
+//}

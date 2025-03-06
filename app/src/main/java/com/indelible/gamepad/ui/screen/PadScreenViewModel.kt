@@ -4,6 +4,8 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.indelible.gamepad.service.NetworkServiceImpl
+import com.indelible.gamepad.ui.core.ConnectionState
+import com.indelible.gamepad.ui.core.ConnectionType
 import com.indelible.gamepad.ui.core.JoystickPosition
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,16 +18,6 @@ class PadScreenViewModel(
 ): ViewModel() {
     private val _uiState = MutableStateFlow(PadScreenState())
     val uiState = _uiState.asStateFlow()
-
-    init {
-        viewModelScope.launch {
-            try {
-                networkService.connect()
-            }catch (e: Exception){
-                Log.e(TAG, "error connecting to the server", e)
-            }
-        }
-    }
 
     fun updateLeftJoystickPosition(position: JoystickPosition){
         _uiState.update {
@@ -55,9 +47,48 @@ class PadScreenViewModel(
         onStateChange(byteArrayOf(255.toByte(), 1, 2, 1, 0, index.toByte(), 0, 0))
     }
 
-    private fun closeConnection(){
+    fun updateConnectionType(type: ConnectionType){
+        _uiState.update {
+            uiState.value.copy(connectionType = type)
+        }
+    }
+    fun updateIpAddress(ipAddress: String){
+        _uiState.update {
+            uiState.value.copy(ipAddress = ipAddress)
+        }
+    }
+    fun updatePort(port: String){
+        _uiState.update {
+            uiState.value.copy(port = port)
+        }
+    }
+
+    private fun updateConnectionState(state: ConnectionState){
+        _uiState.update {
+            uiState.value.copy(isConnected = state)
+        }
+    }
+
+    fun closeConnection(){
         viewModelScope.launch {
             async { networkService.disconnect() }.await()
+            updateConnectionState(ConnectionState.DISCONNECTED)
+        }
+    }
+
+    fun connectToServer(){
+        updateConnectionState(ConnectionState.CONNECTING)
+        val ipAddress = uiState.value.ipAddress
+        val port = uiState.value.port.toInt()
+
+        viewModelScope.launch {
+            try {
+                async { networkService.connect(ipAddress, port) }.await()
+                updateConnectionState(ConnectionState.CONNECTED)
+            } catch (e: Exception) {
+                Log.e(TAG, "error connecting to the server", e)
+                updateConnectionState(ConnectionState.DISCONNECTED)
+            }
         }
     }
 
@@ -84,7 +115,11 @@ data class PadScreenState(
     val leftJoystickPosition: JoystickPosition = JoystickPosition(),
     val rightJoystickPosition: JoystickPosition = JoystickPosition(),
     val pressedButtonsIndex: Int = 0,
-    val pressedDirectionIndex: Int = 0
+    val pressedDirectionIndex: Int = 0,
+    val connectionType: ConnectionType = ConnectionType.Server,
+    val isConnected: ConnectionState = ConnectionState.DISCONNECTED,
+    val ipAddress: String = "192.168.2.21",
+    val port: String = "3000"
 )
 
 private const val TAG = "PadScreenViewModel"

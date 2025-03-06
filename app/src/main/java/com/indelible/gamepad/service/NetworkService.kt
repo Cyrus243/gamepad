@@ -8,7 +8,7 @@ import java.net.Socket
 
 
 interface NetworkService {
-    suspend fun connect()
+    suspend fun connect(ipAddress: String, port: Int)
     suspend fun disconnect()
     suspend fun sendData(data: ByteArray)
 }
@@ -17,9 +17,9 @@ class NetworkServiceImpl: NetworkService {
     private var socket: Socket? = null
     private var outputStream: OutputStream? = null
 
-    override suspend fun connect() {
+    override suspend fun connect(ipAddress: String, port: Int) {
         withContext(Dispatchers.IO) {
-            socket = Socket("192.168.2.21", 3000)
+            socket = Socket(ipAddress, port)
             outputStream = socket?.getOutputStream()
             Log.d(TAG, "connected to the server")
         }
