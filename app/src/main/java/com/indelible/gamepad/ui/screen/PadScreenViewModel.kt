@@ -3,6 +3,8 @@ package com.indelible.gamepad.ui.screen
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.indelible.gamepad.BaseViewModel
+import com.indelible.gamepad.common.SnackBarMessage
 import com.indelible.gamepad.service.NetworkServiceImpl
 import com.indelible.gamepad.ui.core.ConnectionState
 import com.indelible.gamepad.ui.core.ConnectionType
@@ -18,7 +20,7 @@ import kotlinx.coroutines.delay
 
 class PadScreenViewModel(
     private val networkService: NetworkServiceImpl = NetworkServiceImpl()
-): ViewModel() {
+): BaseViewModel() {
     private val _uiState = MutableStateFlow(PadScreenState())
     val uiState = _uiState.asStateFlow()
 
@@ -99,6 +101,9 @@ class PadScreenViewModel(
                 }
                 is Result.Error -> {
                     updateConnectionState(ConnectionState.DISCONNECTED)
+                    snackBarManager.showMessage(
+                        SnackBarMessage.StringSnackBar("The host server is unreachable!")
+                    )
                     Log.d(TAG, "connectToServer: Host unreachable !")
                 }
             }

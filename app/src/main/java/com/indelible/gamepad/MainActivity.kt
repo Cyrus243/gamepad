@@ -8,9 +8,14 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.indelible.gamepad.ui.screen.GamePadScreen
 import com.indelible.gamepad.ui.theme.GamepadTheme
 
@@ -20,8 +25,24 @@ class MainActivity : ComponentActivity() {
 
         enableEdgeToEdge()
         setContent {
+            val viewModel: MainViewModel = viewModel()
+
             GamepadTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+                Scaffold(
+                    modifier = Modifier.fillMaxSize(),
+                    snackbarHost = {
+                        SnackbarHost(
+                            hostState = viewModel.snackBarHostState,
+                            modifier = Modifier.padding(8.dp),
+                            snackbar = { snackBarData ->
+                                Snackbar(
+                                    snackbarData = snackBarData,
+                                    contentColor = MaterialTheme.colorScheme.onPrimary
+                                )
+                            }
+                        )
+                    }
+                ) { innerPadding ->
                     Surface(modifier = Modifier.padding(innerPadding)) {
                         GamePadScreen()
                     }

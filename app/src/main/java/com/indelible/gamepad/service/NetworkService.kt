@@ -29,6 +29,9 @@ class NetworkServiceImpl: NetworkService {
                Result.Success(ConnectionState.CONNECTED)
             }catch (e: NoRouteToHostException){
                Result.Error(DataError.Network.HOST_UNREACHABLE)
+            }catch (e: Exception){
+                Log.d(TAG, "connect: An error occurred: ${e.cause}")
+                Result.Error(DataError.Network.UNKNOWN)
             }
         }
     }
