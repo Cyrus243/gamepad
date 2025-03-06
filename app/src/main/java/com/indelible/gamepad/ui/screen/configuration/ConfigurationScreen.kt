@@ -26,6 +26,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -49,11 +50,12 @@ fun ConfigurationSheet(
     onIpAddressChange: (String) -> Unit,
     onPortChange: (String) -> Unit,
     selectedControllerType: ControllerType,
-    onSelectedControllerTypeChange: (ControllerType) -> Unit
+    onSelectedControllerTypeChange: (ControllerType) -> Unit,
+    saveActualSettings: () -> Unit
 ){
     val tabLists by remember { mutableStateOf(listOf("server", "controller")) }
     val pagerState = rememberPagerState{ tabLists.size }
-    var selectedTabIndex by remember { mutableIntStateOf(0) }
+    var selectedTabIndex by rememberSaveable { mutableIntStateOf(0) }
 
     LaunchedEffect(selectedTabIndex) {
         pagerState.animateScrollToPage(selectedTabIndex)
@@ -117,7 +119,8 @@ fun ConfigurationSheet(
                                 ipAddress = ipAddress,
                                 port = port,
                                 onIpAddressChange = onIpAddressChange,
-                                onPortChange = onPortChange
+                                onPortChange = onPortChange,
+                                saveActualSettings = saveActualSettings
                             )
                         }
                     }

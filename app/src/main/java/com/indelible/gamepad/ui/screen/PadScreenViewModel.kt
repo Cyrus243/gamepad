@@ -1,12 +1,13 @@
 package com.indelible.gamepad.ui.screen
 
 import android.util.Log
-import androidx.lifecycle.ViewModel
+import androidx.datastore.preferences.core.Preferences
 import androidx.lifecycle.viewModelScope
 import com.indelible.gamepad.BaseViewModel
-import com.indelible.gamepad.QUIT_MESSAGE
+import com.indelible.gamepad.common.QUIT_MESSAGE
+import com.indelible.gamepad.common.AppPreferences
 import com.indelible.gamepad.common.SnackBarMessage
-import com.indelible.gamepad.service.NetworkServiceImpl
+import com.indelible.gamepad.service.NetworkService
 import com.indelible.gamepad.ui.core.ConnectionState
 import com.indelible.gamepad.ui.core.ConnectionType
 import com.indelible.gamepad.ui.core.ControllerType
@@ -20,25 +21,35 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import com.indelible.gamepad.ui.core.Result
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.filterNotNull
 
 class PadScreenViewModel(
-    private val networkService: NetworkServiceImpl = NetworkServiceImpl(),
-    private val inputValidator: InputValidator = InputValidator()
+    private val networkService: NetworkService,
+    private val inputValidator: InputValidator,
+    private val appPreferences: AppPreferences
 ): BaseViewModel() {
     private val _uiState = MutableStateFlow(PadScreenState())
     val uiState = _uiState.asStateFlow()
 
     init {
         viewModelScope.launch {
-            networkService.message.filterNotNull().collect{
-                Log.d(TAG, "message received: $it")
-                if (it == QUIT_MESSAGE){
-                    closeConnection()
-                    snackBarManager.showMessage(
-                        SnackBarMessage.StringSnackBar("Disconnected from the server")
-                    )
+            launch {
+                readSettings(AppPreferences.IP_ADDRESS){
+                    updateIpAddress(it)
+                }
+                readSettings(AppPreferences.PORT){
+                    updatePort(it)
+                }
+            }
+            launch {
+                networkService.message.filterNotNull().collect{
+                    Log.d(TAG, "message received: $it")
+                    if (it == QUIT_MESSAGE){
+                        closeConnection()
+                        snackBarManager.showMessage(
+                            SnackBarMessage.StringSnackBar("Disconnected from the server")
+                        )
+                    }
                 }
             }
         }
@@ -140,6 +151,34 @@ class PadScreenViewModel(
         }
     }
 
+    fun saveSettings(){
+        val ipAddress = uiState.value.ipAddress
+        val port = uiState.value.port
+
+        if (inputValidator.validateIpAddress(ipAddress).not()){
+            snackBarManager.showMessage(SnackBarMessage.StringSnackBar("Invalid IP address"))
+            return
+        }
+
+        if (port.isBlank()){
+            snackBarManager.showMessage(SnackBarMessage.StringSnackBar("Invalid port"))
+            return
+        }
+
+        viewModelScope.launch {
+            appPreferences.writeToDataStore(uiState.value.ipAddress, AppPreferences.IP_ADDRESS)
+            appPreferences.writeToDataStore(uiState.value.port, AppPreferences.PORT)
+        }
+        snackBarManager.showMessage(SnackBarMessage.StringSnackBar("Settings saved"))
+    }
+
+    fun readSettings(key: Preferences.Key<String>, onComplete: (String) -> Unit){
+        viewModelScope.launch {
+            val result = async { appPreferences.readFromDataStore(key) }.await()
+            onComplete(result ?: "")
+        }
+    }
+
     private fun onStateChange(data: ByteArray){
         if (uiState.value.connectionState != ConnectionState.CONNECTED)
             return
@@ -174,8 +213,8 @@ data class PadScreenState(
     val pressedDirectionIndex: Int = 0,
     val connectionType: ConnectionType = ConnectionType.Server,
     val connectionState: ConnectionState = ConnectionState.DISCONNECTED,
-    val ipAddress: String = "192.168.2.21",
-    val port: String = "3000",
+    val ipAddress: String = "",
+    val port: String = "",
     val controllerType: ControllerType = ControllerType.DIGITAL
 )
 

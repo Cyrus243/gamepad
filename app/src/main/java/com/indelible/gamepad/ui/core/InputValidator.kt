@@ -2,7 +2,7 @@ package com.indelible.gamepad.ui.core
 
 import java.util.regex.Pattern
 
-class InputValidator {
+class InputValidator{
 
     fun validateIpAddress(ipAddress: String): Boolean {
         return ipv4Pattern.matcher(ipAddress).matches()

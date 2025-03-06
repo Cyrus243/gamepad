@@ -15,9 +15,10 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.indelible.gamepad.ui.screen.GamePadScreen
 import com.indelible.gamepad.ui.theme.GamepadTheme
+import org.koin.androidx.viewmodel.ext.android.viewModel
+
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -25,7 +26,7 @@ class MainActivity : ComponentActivity() {
 
         enableEdgeToEdge()
         setContent {
-            val viewModel: MainViewModel = viewModel()
+            val viewModel: MainViewModel by viewModel()
 
             GamepadTheme {
                 Scaffold(

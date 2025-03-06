@@ -41,15 +41,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.indelible.gamepad.BOTTOM_DIRECTION
-import com.indelible.gamepad.CIRCLE_BUTTON
-import com.indelible.gamepad.LEFT_DIRECTION
-import com.indelible.gamepad.RIGHT_DIRECTION
-import com.indelible.gamepad.SQUARE_BUTTON
-import com.indelible.gamepad.TOP_DIRECTION
-import com.indelible.gamepad.TRIANGLE_BUTTON
-import com.indelible.gamepad.X_BUTTON
+import com.indelible.gamepad.common.BOTTOM_DIRECTION
+import com.indelible.gamepad.common.CIRCLE_BUTTON
+import com.indelible.gamepad.common.LEFT_DIRECTION
+import com.indelible.gamepad.common.RIGHT_DIRECTION
+import com.indelible.gamepad.common.SQUARE_BUTTON
+import com.indelible.gamepad.common.TOP_DIRECTION
+import com.indelible.gamepad.common.TRIANGLE_BUTTON
+import com.indelible.gamepad.common.X_BUTTON
 import com.indelible.gamepad.ui.components.BottomPadDirectionButton
 import com.indelible.gamepad.ui.components.Joystick
 import com.indelible.gamepad.ui.components.LeftPadDirectionButton
@@ -61,13 +60,15 @@ import com.indelible.gamepad.ui.core.ConnectionState
 import com.indelible.gamepad.ui.screen.configuration.ConfigurationSheet
 import com.indelible.gamepad.ui.theme.darkSpringGreen
 import kotlinx.coroutines.launch
+import org.koin.compose.koinInject
 
 @Composable
 fun GamePadScreen(){
-    val viewModel: PadScreenViewModel = viewModel()
+    val viewModel = koinInject<PadScreenViewModel>()
     val uiState by viewModel.uiState.collectAsState()
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+
 
     Box(
         modifier = Modifier.fillMaxSize()
@@ -96,7 +97,8 @@ fun GamePadScreen(){
                             onIpAddressChange = { viewModel.updateIpAddress(it) },
                             onPortChange = { viewModel.updatePort(it) },
                             selectedControllerType = uiState.controllerType,
-                            onSelectedControllerTypeChange = { viewModel.updateControllerType(it) }
+                            onSelectedControllerTypeChange = { viewModel.updateControllerType(it) },
+                            saveActualSettings = { viewModel.saveSettings() }
                         )
                     }
                 }

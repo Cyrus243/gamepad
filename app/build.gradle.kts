@@ -60,4 +60,10 @@ dependencies {
     debugImplementation(libs.androidx.ui.test.manifest)
 
     implementation(libs.androidx.extend.icons)
+    implementation(libs.androidx.datastore.preference)
+    implementation(libs.androidx.datastore.rxjava2)
+    implementation(libs.androidx.datastore.rxjava3)
+
+    implementation(libs.koin.android)
+    implementation(libs.koin.android.compose)
 }

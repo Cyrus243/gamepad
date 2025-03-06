@@ -1,4 +1,4 @@
-package com.indelible.gamepad
+package com.indelible.gamepad.common
 
 const val OPTION_BUTTON = 1
 const val TOP_DIRECTION = 1

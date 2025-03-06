@@ -14,6 +14,7 @@ import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -34,7 +35,8 @@ fun ColumnScope.ServerConfiguration(
     ipAddress: String,
     port: String,
     onIpAddressChange: (String) -> Unit,
-    onPortChange: (String) -> Unit
+    onPortChange: (String) -> Unit,
+    saveActualSettings: () -> Unit
 ){
 
     ConnectionModeSelector(
@@ -50,7 +52,7 @@ fun ColumnScope.ServerConfiguration(
     CustomTextField(
         value = ipAddress,
         onValueChange = { onIpAddressChange(it) },
-        placeHolder = "IP Address",
+        placeHolder = "Enter the server ip address",
         singleLine = true,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
     )
@@ -64,7 +66,7 @@ fun ColumnScope.ServerConfiguration(
     CustomTextField(
         value = port,
         onValueChange = { onPortChange(it) },
-        placeHolder = "Port",
+        placeHolder = "Enter the server port",
         singleLine = true,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
     )
@@ -89,6 +91,14 @@ fun ColumnScope.ServerConfiguration(
             )
         else
             Text(text = "Connect")
+    }
+
+    Spacer(modifier = Modifier.height(8.dp))
+    TextButton(onClick = saveActualSettings) {
+        Text(
+            text = "Save actual configuration",
+            style = MaterialTheme.typography.labelSmall
+        )
     }
 
 }

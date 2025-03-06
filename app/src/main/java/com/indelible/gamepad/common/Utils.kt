@@ -1,4 +1,4 @@
-package com.indelible.gamepad
+package com.indelible.gamepad.common
 
 import kotlin.math.PI
 import kotlin.math.atan2

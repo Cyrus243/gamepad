@@ -21,7 +21,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import com.indelible.gamepad.angleToUserCoordinate
+import com.indelible.gamepad.common.angleToUserCoordinate
 import com.indelible.gamepad.ui.core.JoystickPosition
 import kotlin.math.hypot
 import kotlin.math.min

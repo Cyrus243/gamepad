@@ -1,7 +1,7 @@
 package com.indelible.gamepad.service
 
 import android.util.Log
-import com.indelible.gamepad.QUIT_MESSAGE
+import com.indelible.gamepad.common.QUIT_MESSAGE
 import com.indelible.gamepad.ui.core.ConnectionState
 import com.indelible.gamepad.ui.core.DataError
 import com.indelible.gamepad.ui.core.Result
@@ -16,6 +16,9 @@ import java.net.SocketException
 
 
 interface NetworkService {
+    val message: MutableStateFlow<String?>
+        get() = MutableStateFlow(null)
+
     suspend fun connect(ipAddress: String, port: Int): Result<ConnectionState, DataError.Network>
     suspend fun disconnect()
     suspend fun sendData(data: ByteArray): Result<Unit, DataError.Network>
@@ -26,7 +29,6 @@ class NetworkServiceImpl: NetworkService {
     private var socket: Socket? = null
     private var outputStream: OutputStream? = null
     private var inputStream: InputStream? = null
-    val message = MutableStateFlow<String?>(null)
     private var isRunning = false
 
     override suspend fun connect(ipAddress: String, port: Int): Result<ConnectionState, DataError.Network>{
